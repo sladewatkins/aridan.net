@@ -12,7 +12,7 @@ A Pihole is using a Raspberry Pi as a self-hosted DNS-server. It allows you to b
 
 The internet initially wasn't built for mere-mortals like me and you, it was made so computers can communicate with each other, and that's still how it works. A server is someone else's computer somewhere in the world. A very fancy computer, but a computer nonetheless. Each computer gets its own (or well, it did before we started to run out, but that's too much for this) IP address so they can communicate. They can talk to each other, perfect, right? Yes, for the computers, but not as much for us.
 IP addresses are built for computers. But humans have a really hard time remembering ever-changing numbers. Like did you know that Google's IP address is [142.251.45.78](http://142.251.45.78)? Probably not. Us humans are much better at remembering words and text, like [google.com](https://google.com) for example.
-But that presents a problem. The internet and computers are built for numbers. Humans are not. What do we do? We need a translator. That's what a DNS, a Domain Name System, does. A domain name system is the thing that lets you write google.com in your web browser, and it'll tell your computer to 142.251.45.78.
+But that presents a problem. The internet and computers are built for numbers. Humans are not. What do we do? We need a translator. That's what a DNS, a Domain Name System, does. A domain name system is the thing that lets you write google.com in your web browser, and it'll tell your computer to go to 142.251.45.78.
 
 ## How to use DNS to block ads
 
@@ -21,13 +21,16 @@ So since computers need to have a domain translated to an IP address in order to
 ## The problem with blocking ads on the DNS-level
 
 Blocking ads on a DNS-level is an effective way to get rid of many ads, but it's not foolproof. It all matters on how the ad is served. Are you on genericwebsite.com and it hosts its ads on adserver123.com? Problem solved, just block adserver123.com and you can still access genericwebsite.com!
-But if the site serves the ad using the same domain, what does it do then? If you're on youtube.com and it serves its ads using the youtube.com domain, what should it do? Block the entirety of YouTube? Probably not.
+But if the site serves the ad using the same domain, what does it do then? If you're on genericwebsite.com and it serves its ads using the genericwebsite.com domain, what should it do? Blocking the genericwebsite.com domain would block everything, so you'll *probably* still see ads there.
+*Probably* because ads are dynamic. You don't want to update the whole website because you want to change an ad, so websites either, as mentioned earlier, load ads from elsewhere, or use a separate JavaScript file to manage ads. And that JavaScript is also in many cases loaded from elsewhere, at which point, the Pihole can block it. There are only very few sites where it's completely (or mostly) on the same domain, YouTube, and from my experience, Fandom Wiki.
+And that's it.
 
 ## The advantage
 
 But there are advantages! Many of them! The main advantage is that it applies to any device you connect to your network, it requires no application on your end device. Don't want to see ads on your Samsung Smart Fridge? Yeah, no worries, it's gone. Annoyed of your mobile games showing ads? Gone too.
 It also lets you block more than just ads and trackers. Want to block websites not safe for work? Go ahead, add a blocklist for that. Want to block all Google services from your network? There's a blocklist for that as well. It gives you control of your network again, allowing you to both monitor what domains are being accessed, and then block them in real time.
+There is a bit of setup required, mainly installing the Raspberry Pi OS, SSH-ing into it (don't worry, I'll explain what that is), and lastly configuring either your router, or each device separately, to use the Pihole. When you've done that, everything can be managed from a portal with a visual interface. So let's get started!
 
-> More coming soon
->
-> * [ ] Fix it
+## Selecting a Raspberry Pi to install it on
+
+> *This article is still being written.*

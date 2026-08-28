@@ -9,15 +9,6 @@
 
     function card(article) {
         var esc = AF.escapeHtml;
-        var categories = Array.isArray(article.meta.categories) ? article.meta.categories : [];
-
-        var chips = categories
-            .map(function (cat) {
-                if (!cat || typeof cat !== "object") return "";
-                return '<span class="' + esc(cat.color || "default") + '">' + esc(cat.name) + "</span>";
-            })
-            .join("");
-
         var el = document.createElement("div");
         el.className = "section articlePreview";
         el.dataset.slug = article.slug;
@@ -34,7 +25,6 @@
                 '<p class="section-content previewContent">' + esc(article.meta.preview || "") + "</p>" +
             "</div>" +
             '<div class="readMore">' +
-                            '<div class="categories">' + chips + "</div>" +
                 '<div><a href="' + esc(articleUrl(article.slug)) + '" title="Read more" class="button backButton">' +
                     '<i class="fa-solid fa-arrow-right"></i>' +
                 "</a> </div>" +

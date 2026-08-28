@@ -3,6 +3,10 @@
 
     var Store = window.ArticleStore;
 
+    function editUrl(slug) {
+        return "/articles/edit/index.html?article=" + encodeURIComponent(slug);
+    }
+
     function button(className, title, icon) {
         var b = document.createElement("button");
         b.type = "button";
@@ -20,6 +24,16 @@
         bar.className = "articleAdminNotice" + (kind ? " " + kind : "");
     }
 
+    function addNoticeBar(parent) {
+        var bar = document.createElement("p");
+        bar.id = "articleAdminNotice";
+        bar.className = "articleAdminNotice";
+        bar.setAttribute("role", "status");
+        bar.setAttribute("aria-live", "polite");
+        parent.appendChild(bar);
+        return bar;
+    }
+
     function addNewButton() {
         var info = document.querySelector("main.container .info > div");
         if (!info || document.getElementById("newArticleButton")) return;
@@ -31,20 +45,15 @@
         link.innerHTML = '<i class="fa-solid fa-plus"></i>New article';
         info.appendChild(link);
 
-        var bar = document.createElement("p");
-        bar.id = "articleAdminNotice";
-        bar.className = "articleAdminNotice";
-        bar.setAttribute("role", "status");
-        bar.setAttribute("aria-live", "polite");
-        info.appendChild(bar);
+        addNoticeBar(info);
 
         if (!Store.isSupported()) {
             var warn = document.createElement("span");
-            warn.className = "warn";
+            warn.className = "warn browserSupportWarning";
             warn.id = "browserSupportWarning";
-            warn.style.display = "flex";
-            warn.innerHTML = '<p>' +
-                BROWSER_WARNING + "</p>";
+            var line = document.createElement("p");
+            line.textContent = Store.UNSUPPORTED;
+            warn.appendChild(line);
             (info.parentNode || info).appendChild(warn);
         }
     }
@@ -67,10 +76,11 @@
             });
     }
 
-    var BROWSER_WARNING =
-        "This browser can't save or delete articles. Use Download .md instead.";
-
-    var CANNOT_DELETE = "Deleting needs Chrome, Edge or Opera.";
+    function disableDelete(del) {
+        del.disabled = true;
+        del.title = Store.CANNOT_DELETE;
+        del.setAttribute("aria-label", Store.CANNOT_DELETE);
+    }
 
     function decorate(card) {
         var slug = card.dataset.slug;
@@ -82,7 +92,7 @@
 
         var edit = document.createElement("a");
         edit.className = "button";
-        edit.href = "/articles/edit/index.html?article=" + encodeURIComponent(slug);
+        edit.href = editUrl(slug);
         edit.title = "Edit this article";
         edit.setAttribute("aria-label", "Edit this article");
         edit.innerHTML = '<i class="fa-solid fa-pen"></i>';
@@ -97,9 +107,7 @@
                 });
             });
         } else {
-            del.disabled = true;
-            del.title = CANNOT_DELETE;
-            del.setAttribute("aria-label", CANNOT_DELETE);
+            disableDelete(del);
         }
 
         group.appendChild(edit);
@@ -134,7 +142,7 @@
         if (back) row.appendChild(back);
 
         var edit = labelledButton("a", "", "fa-pen", "Edit");
-        edit.href = "/articles/edit/index.html?article=" + encodeURIComponent(slug);
+        edit.href = editUrl(slug);
         row.appendChild(edit);
 
         var del = labelledButton("button", "destructive", "fa-trash-can", "Delete");
@@ -146,19 +154,12 @@
                 });
             });
         } else {
-            del.disabled = true;
-            del.title = CANNOT_DELETE;
+            disableDelete(del);
         }
         row.appendChild(del);
 
         meta.appendChild(row);
-
-        var bar = document.createElement("p");
-        bar.id = "articleAdminNotice";
-        bar.className = "articleAdminNotice";
-        bar.setAttribute("role", "status");
-        bar.setAttribute("aria-live", "polite");
-        meta.appendChild(bar);
+        addNoticeBar(meta);
     }
 
     function init() {

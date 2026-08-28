@@ -90,7 +90,7 @@
         return { meta: meta, body: src.slice(m[0].length).trim() };
     }
 
-    var KEY_ORDER = ["title", "date", "preview", "categories"];
+    var KEY_ORDER = ["title", "date", "preview"];
 
     function stringify(meta, body) {
         var keys = Object.keys(meta || {}).sort(function (a, b) {

@@ -2,10 +2,6 @@ body.editorPage main.container {
     max-width: 600px;
 }
 
-.editorLayout {
-    display: block;
-}
-
 #editorFolderBar {
     display: flex;
     gap: 12px;
@@ -21,6 +17,9 @@ body.editorPage main.container {
 
 #editorFolderBar .button {
     flex: 0 0 auto;
+    align-self: center;
+    padding: 6px 14px;
+    font-size: .9em;
 }
 
 .style-flat #editorFolderBar.resolved {
@@ -38,8 +37,8 @@ body.editorPage main.container {
     box-shadow: none;
 }
 
-#editorFolderBar.resolved i {
-    color: var(--accent-color);
+.browserSupportWarning {
+    display: flex;
 }
 
 .section.editorForm,
@@ -68,10 +67,7 @@ body.editorPage main.container {
 }
 
 .editorField input,
-.editorField textarea,
-.editorField select,
-.editorCategory input,
-.editorCategory select {
+.editorField textarea {
     width: 100%;
     text-align: left;
     justify-content: flex-start;
@@ -80,49 +76,23 @@ body.editorPage main.container {
 }
 
 .editorField input.button,
-.editorField textarea.button,
-.editorField select.button,
-.editorCategory input.button,
-.editorCategory select.button {
+.editorField textarea.button {
     border-radius: 12px;
-}
-
-.editorField input.button,
-.editorField textarea.button,
-.editorCategory input.button {
     cursor: text;
-}
-
-.editorField select.button,
-.editorCategory select.button {
-    cursor: pointer;
+    transition: none;
 }
 
 .editorField input[type="date"].button {
     cursor: auto;
 }
 
-.editorField input.button,
-.editorField textarea.button,
-.editorField select.button,
-.editorCategory input.button,
-.editorCategory select.button {
-    transition: none;
-}
-
 .style-flat .editorField input.button:hover,
-.style-flat .editorField textarea.button:hover,
-.style-flat .editorField select.button:hover,
-.style-flat .editorCategory input.button:hover,
-.style-flat .editorCategory select.button:hover {
+.style-flat .editorField textarea.button:hover {
     background-color: var(--button-background-color);
 }
 
 .style-liquid-glass .editorField input.button:hover,
-.style-liquid-glass .editorField textarea.button:hover,
-.style-liquid-glass .editorField select.button:hover,
-.style-liquid-glass .editorCategory input.button:hover,
-.style-liquid-glass .editorCategory select.button:hover {
+.style-liquid-glass .editorField textarea.button:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -135,20 +105,14 @@ body.editorPage main.container {
 .editorField input.button:read-only,
 .editorField textarea.button:read-only,
 .editorField input.button:disabled,
-.editorField textarea.button:disabled,
-.editorField select.button:disabled,
-.editorCategory input.button:disabled,
-.editorCategory select.button:disabled {
+.editorField textarea.button:disabled {
     color: var(--secondary-title-color);
     opacity: .55;
     cursor: not-allowed;
 }
 
 .editorField input.button:active,
-.editorField textarea.button:active,
-.editorField select.button:active,
-.editorCategory input.button:active,
-.editorCategory select.button:active {
+.editorField textarea.button:active {
     transform: none;
 }
 
@@ -159,13 +123,6 @@ body.editorPage main.container {
     font-size: .95em;
     line-height: 1.55;
     min-height: 320px;
-}
-
-.editorCategory {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    gap: 8px;
-    margin-bottom: 8px;
 }
 
 .editorStatus,

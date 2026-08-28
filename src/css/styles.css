@@ -1037,7 +1037,7 @@ border: 1px solid var(--liquid-glass-button-border);
 .articlePreview>.readMore {
     flex: 1;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     text-align: center;
     margin-top: 10px;
@@ -1054,36 +1054,6 @@ border: 1px solid var(--liquid-glass-button-border);
 .articlePreview>.readMore>a>i {
     margin: 0px;
 }
-
-.categories {
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 4px;
-    margin-bottom: 4px;
-}
-
-.categories>span {
-    background-color: var(--button-background-color);
-    border: 2px solid var(--button-background-color);
-    color: var(--secondary-title-color);
-    padding: 5px 10px;
-    border-radius: 6px;
-    font-size: 1em;
-    text-decoration: none;
-}
-
-
-.categories>span.blue {
-    background-color: var(--accent-color);
-    border: 2px solid var(--accent-color-hover);
-    color: white;
-}
-
-
 
 /* Article content styles */
 #articleContent {
@@ -1169,7 +1139,7 @@ border: 1px solid var(--liquid-glass-button-border);
     gap: 0px;
 }
 
-.articleAdminActions>*>i, .editorCategory>*>i, .editorTag>*>i {
+.articleAdminActions>*>i {
     margin: 0px;
 }
 
@@ -1262,7 +1232,6 @@ span.token{
     .style-liquid-glass .warn {
         background: rgba(249, 76, 87, 0.15);
     border: 1px solid rgba(249, 76, 87, 0.35);
-    color: #f94c57;
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     box-shadow:

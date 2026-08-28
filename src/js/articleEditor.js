@@ -3,15 +3,17 @@
 
     var AF = window.ArticleFormat;
     var Store = window.ArticleStore;
-    var COLORS = [
-        { value: "default", label: "Default" },
-        { value: "blue", label: "Blue" }
-    ];
 
     var isEdit = /\/articles\/edit\//.test(location.pathname);
     var originalSlug = null;
     var slugEditedByHand = false;
+    var dirty = false;
+    var busy = false;
     var el = {};
+
+    function viewUrl(slug) {
+        return "/articles/view/index.html?article=" + encodeURIComponent(slug);
+    }
 
     var bodyEditor = {
         instance: null,
@@ -24,38 +26,36 @@
         }
     };
 
-    function siteIsDark() {
-        return document.documentElement.classList.contains("theme-dark");
-    }
-
     function applyEditorTheme() {
-        var host = document.getElementById("fieldBodyEditor");
-        if (!host || !bodyEditor.instance) return;
-        host.classList.toggle("toastui-editor-dark", siteIsDark());
+        if (!el.bodyHost || !bodyEditor.instance) return;
+        el.bodyHost.classList.toggle(
+            "toastui-editor-dark",
+            document.documentElement.classList.contains("theme-dark")
+        );
     }
 
     function useTextareaFallback() {
         el.body.classList.remove("hide");
-        var host = document.getElementById("fieldBodyEditor");
-        if (host) host.classList.add("hide");
+        if (el.bodyHost) el.bodyHost.classList.add("hide");
     }
 
-    function initBodyEditor(initialMarkdown) {
-        var host = document.getElementById("fieldBodyEditor");
+    function initBodyEditor() {
         var Editor = window.toastui && window.toastui.Editor;
-        if (!host || !Editor) { useTextareaFallback(); return; }
+        if (!el.bodyHost || !Editor) { useTextareaFallback(); return; }
 
         try {
             bodyEditor.instance = new Editor({
-                el: host,
-                height: "520px",
+                el: el.bodyHost,
+                height: "auto",
+                minHeight: "420px",
                 initialEditType: "wysiwyg",
                 previewStyle: "vertical",
                 hideModeSwitch: false,
                 usageStatistics: false,
                 autofocus: false,
-                initialValue: initialMarkdown || ""
+                initialValue: ""
             });
+            bodyEditor.instance.on("change", markDirty);
             applyEditorTheme();
             new MutationObserver(applyEditorTheme).observe(document.documentElement, {
                 attributes: true, attributeFilter: ["class"]
@@ -67,105 +67,235 @@
     }
 
     function status(message, kind) {
-        el.status.innerHTML = "";
+        el.status.textContent = message || "";
         el.status.className = "editorStatus" + (kind ? " " + kind : "");
-        if (message) el.status.appendChild(document.createTextNode(message));
     }
 
-    function collectCategories() {
-        return Array.from(el.categoryList.querySelectorAll(".editorCategory"))
-            .map(function (row) {
-                return {
-                    name: row.querySelector(".categoryName").value.trim(),
-                    color: row.querySelector(".categoryColor").value
-                };
-            })
-            .filter(function (cat) { return cat.name; });
+    function isShowingError() {
+        return el.status.classList.contains("error");
+    }
+
+    function markDirty() {
+        dirty = true;
+        if (isShowingError() && !el.save.disabled) status("");
+    }
+
+    function setBusy(state) {
+        busy = state;
+        [el.save, el.download, el.remove, el.pickFolder].forEach(function (button) {
+            if (button && !button.dataset.permanentlyDisabled) button.disabled = state;
+        });
+    }
+
+    function disablePermanently(button, why) {
+        if (!button) return;
+        button.disabled = true;
+        button.title = why;
+        button.dataset.permanentlyDisabled = "true";
     }
 
     function buildFile() {
-        var meta = {
+        return AF.stringify({
             title: el.title.value.trim(),
             date: el.date.value,
             preview: el.preview.value.trim()
-        };
-        var cats = collectCategories();
-        if (cats.length) meta.categories = cats;
-        return AF.stringify(meta, bodyEditor.get());
-    }
-
-    function addCategoryRow(name, color) {
-        var row = document.createElement("div");
-        row.className = "editorCategory";
-        row.innerHTML =
-            '<input type="text" class="button categoryName" placeholder="Design">' +
-            '<select class="button categoryColor">' +
-                COLORS.map(function (c) {
-                    return '<option value="' + c.value + '">' + c.label + "</option>";
-                }).join("") +
-            "</select>" +
-            '<button type="button" class="button destructive removeCategory" title="Remove">' +
-                '<i class="fa-solid fa-xmark"></i>' +
-            "</button>";
-        row.querySelector(".categoryName").value = name || "";
-        if (color) row.querySelector(".categoryColor").value = color;
-        row.querySelector(".removeCategory").addEventListener("click", function () {
-            row.remove();
-        });
-        el.categoryList.appendChild(row);
-    }
-
-    function validate() {
-        if (!el.title.value.trim()) return "Give the article a title.";
-        if (!el.slug.value.trim()) return "Give the article a file name.";
-        if (!AF.isValidSlug(el.slug.value.trim()))
-            return "File name can only use lowercase letters, numbers and dashes.";
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(el.date.value)) return "Pick a date.";
-        if (!bodyEditor.get().trim()) return "The article has no body yet.";
-        return null;
-    }
-
-    function setFolderState(dir) {
-        var bar = document.getElementById("editorFolderBar");
-        el.folderState.textContent = dir
-            ? 'Saving into "' + dir.name + '".'
-            : "No folder chosen yet.";
-        if (bar) bar.classList.toggle("resolved", !!dir);
-        var pick = document.getElementById("editorPickFolder");
-        if (pick) pick.textContent = dir ? "Change folder" : "Choose folder";
-    }
-
-    function chooseFolder() {
-        return Store.getDir(true).then(function (dir) {
-            setFolderState(dir);
-            if (dir) status("");
-            return dir;
-        }).catch(function (err) {
-            status("Couldn't open that folder: " + err.message, "error");
-            return null;
-        });
+        }, bodyEditor.get());
     }
 
     function fillForm(meta, body) {
         el.title.value = meta.title || "";
-        el.date.value = /^\d{4}-\d{2}-\d{2}$/.test(meta.date || "")
-            ? meta.date
-            : AF.dateSortKey(meta.date);
+        el.date.value = AF.formatDate(meta.date).match(/^\d{4}-\d{2}-\d{2}$/)
+            ? AF.formatDate(meta.date)
+            : "";
         el.preview.value = meta.preview || "";
         bodyEditor.set(body || "");
-        el.categoryList.innerHTML = "";
-        (Array.isArray(meta.categories) ? meta.categories : []).forEach(function (cat) {
-            if (cat && typeof cat === "object") addCategoryRow(cat.name, cat.color);
+        dirty = false;
+    }
+
+    function validate() {
+        if (!el.title.value.trim()) return { field: el.title, message: "Give the article a title." };
+        if (!el.slug.value.trim()) return { field: el.slug, message: "Give the article a file name." };
+        if (!AF.isValidSlug(el.slug.value.trim())) {
+            return {
+                field: el.slug,
+                message: "File name can only use lowercase letters, numbers and dashes."
+            };
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(el.date.value)) return { field: el.date, message: "Pick a date." };
+        if (!bodyEditor.get().trim()) return { field: null, message: "The article has no body yet." };
+        return null;
+    }
+
+    function reportProblem(problem) {
+        status(problem.message, "error");
+        if (problem.field) problem.field.focus({ preventScroll: false });
+    }
+
+    function setFolderState(dir) {
+        el.folderState.textContent = dir
+            ? 'Saving into "' + dir.name + '".'
+            : "No folder chosen yet.";
+        el.folderBar.classList.toggle("resolved", !!dir);
+        if (el.pickFolder) {
+            el.pickFolder.textContent = dir ? "Change" : "Choose folder";
+            el.pickFolder.title = dir
+                ? "Pick a different folder"
+                : "Pick assets/content/articles/";
+        }
+        return dir;
+    }
+
+    function confirmUnfamiliar(dir) {
+        if (!dir) return Promise.resolve(null);
+        return Store.looksLikeArticlesDir(dir).then(function (looksRight) {
+            if (looksRight) return dir;
+            var ok = confirm(
+                '"' + dir.name + '" has no articles in it.\n\n' +
+                "Saving here creates a new index.json in that folder. Use it anyway?"
+            );
+            return ok ? dir : null;
         });
+    }
+
+    function pickFolder() {
+        return Store.pickDir()
+            .then(confirmUnfamiliar)
+            .then(function (dir) {
+                if (!dir) return Store.savedDir(false).then(setFolderState);
+                setFolderState(dir);
+                if (isShowingError()) status("");
+                return dir;
+            })
+            .catch(function (err) {
+                status("Couldn't open that folder: " + err.message, "error");
+                return null;
+            });
+    }
+
+    function ensureFolder() {
+        return Store.getDir(true).then(setFolderState);
+    }
+
+    function failed(what) {
+        return function (err) {
+            console.error(err);
+            status("Couldn't " + what + ": " + err.message, "error");
+        };
+    }
+
+    function save(event) {
+        if (event) event.preventDefault();
+        if (busy) return;
+
+        var problem = validate();
+        if (problem) { reportProblem(problem); return; }
+
+        if (!Store.isSupported()) {
+            status(Store.UNSUPPORTED, "error");
+            return;
+        }
+
+        var slug = el.slug.value.trim();
+        var contents = buildFile();
+
+        setBusy(true);
+        status("Saving…");
+
+        ensureFolder()
+            .then(function (dir) {
+                if (!dir) { status("No folder chosen, so nothing was saved.", "error"); return; }
+
+                return Store.exists(dir, slug).then(function (already) {
+                    if (already && slug !== originalSlug &&
+                        !confirm(slug + ".md already exists in this folder. Overwrite it?")) {
+                        status("Nothing was saved.");
+                        return;
+                    }
+                    return Store.writeArticle(dir, slug, contents)
+                        .then(function () { return Store.rebuildIndex(dir); })
+                        .then(function () {
+                            dirty = false;
+                            status("Saved " + slug + ".md. Opening it…", "ok");
+                            location.href = viewUrl(slug);
+                        });
+                });
+            })
+            .catch(failed("save " + slug + ".md"))
+            .finally(function () { setBusy(false); });
+    }
+
+    function remove() {
+        if (busy || !originalSlug) return;
+        if (!confirm('Delete "' + originalSlug + '"?\n\nThis deletes the file from ' +
+                     "assets/content/articles/ and cannot be undone.")) {
+            return;
+        }
+
+        setBusy(true);
+        status("Deleting…");
+
+        ensureFolder()
+            .then(function (dir) {
+                if (!dir) { status("No folder chosen, so nothing was deleted.", "error"); return; }
+                return Store.deleteArticle(dir, originalSlug)
+                    .then(function () { return Store.rebuildIndex(dir); })
+                    .then(function () {
+                        dirty = false;
+                        location.href = "/articles/";
+                    });
+            })
+            .catch(failed("delete " + originalSlug))
+            .finally(function () { setBusy(false); });
+    }
+
+    function download() {
+        var problem = validate();
+        if (problem) { reportProblem(problem); return; }
+
+        var slug = el.slug.value.trim();
+        var url = URL.createObjectURL(new Blob([buildFile()], { type: "text/markdown" }));
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = slug + ".md";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+
+        status(
+            isEdit
+                ? "Downloaded " + slug + ".md - replace the file of the same name in " +
+                  "assets/content/articles/ to save your changes."
+                : "Downloaded " + slug + '.md - move it into assets/content/articles/ and add "' +
+                  slug + '" to index.json.',
+            "ok"
+        );
+    }
+
+    function showSpinner(state) {
+        if (el.spinner) el.spinner.style.display = state ? "block" : "none";
+    }
+
+    function revealForm() {
+        showSpinner(false);
+        el.layout.classList.remove("hide");
+    }
+
+    function cannotEdit(message, why) {
+        showSpinner(false);
+        status(message, "error");
+        disablePermanently(el.save, why);
+        disablePermanently(el.remove, why);
     }
 
     function loadForEditing() {
         var slug = new URLSearchParams(location.search).get("article");
         if (!slug || !AF.isValidSlug(slug)) {
-            status("No article to edit - open this page from the Articles list.", "error");
-            el.save.disabled = true;
+            cannotEdit("No article to edit - open this page from the Articles list.",
+                       "There's no article loaded.");
             return;
         }
+
         originalSlug = slug;
         el.slug.value = slug;
         el.slug.readOnly = true;
@@ -179,147 +309,79 @@
             .then(function (text) {
                 var parsed = AF.parse(text);
                 fillForm(parsed.meta, parsed.body);
+                revealForm();
                 status("");
             })
             .catch(function (err) {
-                status(err.message, "error");
-                el.save.disabled = true;
+                cannotEdit(err.message, "This article couldn't be loaded.");
             });
     }
 
-    function save(event) {
-        event.preventDefault();
-        var problem = validate();
-        if (problem) { status(problem, "error"); return; }
-
-        if (!Store.isSupported()) {
-            status("This browser can't write files directly - use Download .md instead.", "error");
-            return;
-        }
-
-        var slug = el.slug.value.trim();
-
-        chooseFolder().then(function (dir) {
-            if (!dir) { status("No folder chosen, so nothing was saved.", "error"); return; }
-
-            return Store.exists(dir, slug).then(function (already) {
-                var overwritingAnother = already && slug !== originalSlug;
-                if (overwritingAnother &&
-                    !confirm(slug + ".md already exists in this folder. Overwrite it?")) {
-                    status("Nothing was saved.");
-                    return;
-                }
-                status("Saving…");
-                return Store.writeArticle(dir, slug, buildFile())
-                    .then(function () { return Store.rebuildIndex(dir); })
-                    .then(function () {
-                        status("Saved " + slug + ".md. Opening it\u2026", "ok");
-                        location.href =
-                            "/articles/view/index.html?article=" + encodeURIComponent(slug);
-                    });
-            });
-        }).catch(function (err) {
-            console.error(err);
-            status("Couldn't save: " + err.message, "error");
+    function bindShortcuts() {
+        document.addEventListener("keydown", function (event) {
+            if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "s") {
+                event.preventDefault();
+                if (!el.save.disabled) save();
+            }
         });
-    }
 
-    function remove() {
-        if (!originalSlug) return;
-        if (!confirm('Delete "' + originalSlug + '"?\n\nThis deletes the file from ' +
-                     'assets/content/articles/ and cannot be undone.')) {
-            return;
-        }
-        status("Deleting\u2026");
-        Store.getDir(true)
-            .then(function (dir) {
-                if (!dir) { status("No folder chosen, so nothing was deleted.", "error"); return; }
-                return Store.deleteArticle(dir, originalSlug)
-                    .then(function () { return Store.rebuildIndex(dir); })
-                    .then(function () {
-                        location.href = "/articles/";
-                    });
-            })
-            .catch(function (err) {
-                console.error(err);
-                status("Couldn't delete " + originalSlug + ": " + err.message, "error");
-            });
-    }
-
-    function download() {
-        var problem = validate();
-        if (problem) { status(problem, "error"); return; }
-        var slug = el.slug.value.trim();
-        var blob = new Blob([buildFile()], { type: "text/markdown" });
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = slug + ".md";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-        status(
-            isEdit
-                ? "Downloaded " + slug + ".md - replace the file of the same name in " +
-                  "assets/content/articles/ to save your changes."
-                : "Downloaded " + slug + '.md - move it into assets/content/articles/ and add "' +
-                  slug + '" to index.json.',
-            "ok"
-        );
+        window.addEventListener("beforeunload", function (event) {
+            if (!dirty) return;
+            event.preventDefault();
+            event.returnValue = "";
+        });
     }
 
     function init() {
         el = {
+            form: document.getElementById("editorForm"),
             title: document.getElementById("fieldTitle"),
             slug: document.getElementById("fieldSlug"),
             slugHint: document.getElementById("slugHint"),
             date: document.getElementById("fieldDate"),
             preview: document.getElementById("fieldPreview"),
             body: document.getElementById("fieldBody"),
-            categoryList: document.getElementById("categoryList"),
+            bodyHost: document.getElementById("fieldBodyEditor"),
+            layout: document.querySelector(".editorLayout"),
+            spinner: document.getElementById("loading"),
             status: document.getElementById("editorStatus"),
+            folderBar: document.getElementById("editorFolderBar"),
             folderState: document.getElementById("editorFolderState"),
-            save: document.getElementById("saveArticle")
+            pickFolder: document.getElementById("editorPickFolder"),
+            save: document.getElementById("saveArticle"),
+            download: document.getElementById("downloadArticle"),
+            remove: document.getElementById("deleteArticle")
         };
-        if (!el.title) return;
+        if (!el.form || !el.title) return;
 
         el.date.value = AF.todayISO();
+        initBodyEditor();
 
+        el.form.addEventListener("input", markDirty);
+        el.form.addEventListener("submit", save);
         el.title.addEventListener("input", function () {
             if (!isEdit && !slugEditedByHand) el.slug.value = AF.slugify(el.title.value);
         });
         el.slug.addEventListener("input", function () {
             slugEditedByHand = el.slug.value.trim() !== "";
         });
-        initBodyEditor("");
 
-        document.getElementById("addCategory").addEventListener("click", function () {
-            addCategoryRow("", "default");
-        });
-        document.getElementById("editorPickFolder").addEventListener("click", chooseFolder);
-        document.getElementById("editorForm").addEventListener("submit", save);
-        document.getElementById("downloadArticle").addEventListener("click", download);
+        el.download.addEventListener("click", download);
+        if (el.remove) el.remove.addEventListener("click", remove);
+        if (el.pickFolder) el.pickFolder.addEventListener("click", pickFolder);
 
-        var deleteButton = document.getElementById("deleteArticle");
-        if (deleteButton) {
-            if (Store.isSupported()) {
-                deleteButton.addEventListener("click", remove);
-            } else {
-                deleteButton.disabled = true;
-                deleteButton.title = "Deleting needs Chrome, Edge or Opera.";
-            }
-        }
-
-        if (!Store.isSupported()) {
-            document.getElementById("editorPickFolder").remove();
-            el.save.disabled = true;
-            el.save.title = "Saving needs Chrome, Edge or Opera.";
-            var dl = document.getElementById("downloadArticle");
-            dl.classList.add("primary");
-            el.folderState.textContent = "This browser can't save to a folder - use Download .md.";
+        if (Store.isSupported()) {
+            Store.savedDir(false).then(setFolderState);
         } else {
-            Store.getDir(false).then(setFolderState);
+            if (el.pickFolder) el.pickFolder.remove();
+            el.pickFolder = null;
+            el.folderState.textContent = Store.UNSUPPORTED;
+            disablePermanently(el.save, Store.CANNOT_SAVE);
+            disablePermanently(el.remove, Store.CANNOT_DELETE);
+            el.download.classList.add("primary");
         }
+
+        bindShortcuts();
 
         if (isEdit) loadForEditing();
 

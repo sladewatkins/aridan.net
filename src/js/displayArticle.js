@@ -27,14 +27,6 @@
 
     function renderArticle(container, meta, bodyHtml) {
         var esc = AF.escapeHtml;
-        var categories = Array.isArray(meta.categories) ? meta.categories : [];
-        var chips = categories
-            .map(function (cat) {
-                if (!cat || typeof cat !== "object") return "";
-                return '<span class="' + esc(cat.color || "default") + '">' + esc(cat.name) + "</span>";
-            })
-            .join("");
-
         container.innerHTML =
             '<article class="full-article">' +
                 '<div class="info">' +
@@ -51,7 +43,6 @@
                         "</a>" +
                     "</div>" +
                 "</div>" +
-                (chips ? '<div class="categories">' + chips + "</div>" : "") +
                 "<hr>" +
                 '<div class="article-content"></div>' +
             "</article>";

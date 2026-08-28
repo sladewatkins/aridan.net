@@ -64,26 +64,34 @@
         });
     }
 
-    function getDir(interactive) {
+    function savedDir(interactive) {
         if (!isSupported()) return Promise.resolve(null);
-
         return recallDir().then(function (saved) {
             if (!saved) return null;
             return verifyPermission(saved, interactive).then(function (ok) {
                 return ok ? saved : null;
-            }).catch(function () { return null; });
-        }).then(function (handle) {
+            });
+        }).catch(function () { return null; });
+    }
+
+    function pickDir() {
+        if (!isSupported()) return Promise.resolve(null);
+        return global.showDirectoryPicker({ id: "aridan-articles", mode: "readwrite" })
+            .then(function (picked) {
+                return rememberDir(picked)
+                    .catch(function (err) { console.warn("Couldn't remember the folder:", err); })
+                    .then(function () { return picked; });
+            })
+            .catch(function (err) {
+                if (err && err.name === "AbortError") return null;
+                throw err;
+            });
+    }
+
+    function getDir(interactive) {
+        return savedDir(interactive).then(function (handle) {
             if (handle || !interactive) return handle;
-            return global.showDirectoryPicker({ id: "aridan-articles", mode: "readwrite" })
-                .then(function (picked) {
-                    return rememberDir(picked)
-                        .catch(function (err) { console.warn("Couldn't remember the folder:", err); })
-                        .then(function () { return picked; });
-                })
-                .catch(function (err) {
-                    if (err && err.name === "AbortError") return null;
-                    throw err;
-                });
+            return pickDir();
         });
     }
 
@@ -92,26 +100,55 @@
         return slug + ".md";
     }
 
+    function fileHandle(dir, slug, options) {
+        try {
+            return dir.getFileHandle(fileName(slug), options);
+        } catch (err) {
+            return Promise.reject(err);
+        }
+    }
+
+    function isMissing(err) {
+        return !!err && (err.name === "NotFoundError" || err.name === "TypeMismatchError");
+    }
+
+    function writeFile(dir, name, contents) {
+        return dir.getFileHandle(name, { create: true })
+            .then(function (fh) { return fh.createWritable(); })
+            .then(function (w) {
+                return w.write(contents).then(function () { return w.close(); });
+            });
+    }
+
     function readArticle(dir, slug) {
-        return dir.getFileHandle(fileName(slug))
+        return fileHandle(dir, slug)
             .then(function (fh) { return fh.getFile(); })
             .then(function (file) { return file.text(); });
     }
 
     function writeArticle(dir, slug, contents) {
-        return dir.getFileHandle(fileName(slug), { create: true })
-            .then(function (fh) { return fh.createWritable(); })
-            .then(function (w) { return w.write(contents).then(function () { return w.close(); }); });
+        try {
+            return writeFile(dir, fileName(slug), contents);
+        } catch (err) {
+            return Promise.reject(err);
+        }
     }
 
     function deleteArticle(dir, slug) {
-        return dir.removeEntry(fileName(slug));
+        try {
+            return dir.removeEntry(fileName(slug));
+        } catch (err) {
+            return Promise.reject(err);
+        }
     }
 
     function exists(dir, slug) {
-        return dir.getFileHandle(fileName(slug))
+        return fileHandle(dir, slug)
             .then(function () { return true; })
-            .catch(function () { return false; });
+            .catch(function (err) {
+                if (isMissing(err)) return false;
+                throw err;
+            });
     }
 
     function listSlugs(dir) {
@@ -135,19 +172,36 @@
         return listSlugs(dir).then(function (slugs) {
             slugs.sort();
             var json = JSON.stringify(slugs, null, 4) + "\n";
-            return dir.getFileHandle("index.json", { create: true })
-                .then(function (fh) { return fh.createWritable(); })
-                .then(function (w) { return w.write(json).then(function () { return w.close(); }); })
-                .then(function () { return slugs; });
+            return writeFile(dir, "index.json", json).then(function () { return slugs; });
         });
     }
 
+    function looksLikeArticlesDir(dir) {
+        return dir.getFileHandle("index.json")
+            .then(function () { return true; })
+            .catch(function (err) {
+                if (!isMissing(err)) throw err;
+                return listSlugs(dir).then(function (slugs) { return slugs.length > 0; });
+            })
+            .catch(function () { return false; });
+    }
+
+    var UNSUPPORTED = "This browser can't save or delete articles - use Download .md instead.";
+    var CANNOT_SAVE = "Saving needs Chrome, Edge or Opera.";
+    var CANNOT_DELETE = "Deleting needs Chrome, Edge or Opera.";
+
     global.ArticleStore = {
+        UNSUPPORTED: UNSUPPORTED,
+        CANNOT_SAVE: CANNOT_SAVE,
+        CANNOT_DELETE: CANNOT_DELETE,
         isLocalHost: isLocalHost,
         isSupported: isSupported,
         isEditingAvailable: isEditingAvailable,
+        savedDir: savedDir,
+        pickDir: pickDir,
         getDir: getDir,
         forgetDir: forgetDir,
+        looksLikeArticlesDir: looksLikeArticlesDir,
         readArticle: readArticle,
         writeArticle: writeArticle,
         deleteArticle: deleteArticle,

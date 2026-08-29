@@ -15,13 +15,14 @@
 })();
 
 function initThemeSettings() {
-    const settingsDialog = document.getElementById('settingsDialog');
+    // Wait on the controls themselves, not on the modal: the same panel renders
+    // inline on /settings/, where there is no #settingsDialog to find.
     const themeOptions = document.querySelectorAll('input[name="theme-color"]');
     const colorOptions = document.querySelectorAll('input[name="accent-color"]');
     const styleOptions = document.querySelectorAll('input[name="style"]');
     const resetButton = document.querySelector('.dangerZone');
 
-    if (!settingsDialog || themeOptions.length === 0 || colorOptions.length === 0 || !resetButton) {
+    if (themeOptions.length === 0 || colorOptions.length === 0 || !resetButton) {
         setTimeout(initThemeSettings, 100);
         return;
     }

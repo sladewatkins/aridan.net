@@ -22,6 +22,7 @@
       })();
     </script>
 <script src="/src/js/settings.js" async></script>
+    <script src="/src/js/settingsPanel.js" defer></script>
     <script src="/src/js/settingsModal.js" defer></script>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="description" content="aridan.net">
@@ -30,7 +31,7 @@
     <meta name="author" content="actualluaridan">
     <meta name="robots" content="index, follow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experience - aridan.net</title>
+    <title>Settings - aridan.net</title>
 
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/src/css/styles.css">
@@ -54,7 +55,7 @@
         <div>
             <ul class="notAList">
                 <li><a href="/">aridan.net</a></li>
-                <li class="active"><a href="/experience/">Experience</a></li>
+                <li><a href="/experience/">Experience</a></li>
                 <li><a href="/projects/">Projects</a></li>
                 <li><a href="/articles/">Articles</a></li>
                 <!--<li><a href="/minecraft/">Minecraft Server</a></li>-->
@@ -62,7 +63,7 @@
                 <li><a href="/contact/">Contact</a></li>
             </ul>
                       <ul class="notAList">
-                <li><button class="noUI" onClick="toggleSettings()"><i class="fa-solid fa-gear" title="Settings"></i></button></li>
+                <li  class="active"><button class="noUI" onClick="toggleSettings()"><i class="fa-solid fa-gear" title="Settings"></i></button></li>
                 <li><a href="https://github.com/actuallyaridan"><i class="fa-brands fa-github"
                             title="GitHub"></i></a></li>
                 <li><a href="https://twitter.com/actuallyaridan"><i class="fa-brands fa-twitter"
@@ -82,7 +83,7 @@
         </div>
         <menu class="mobileMenu" id="mobileMenuID">
             <ul class="notAList">
-                <li class="active"><a href="/experience/">Experience</a></li>
+                <li><a href="/experience/">Experience</a></li>
                 <li><a href="/projects/">Projects</a></li>
                 <li><a href="/articles/">Articles</a></li>
                 <!--<li><a href="/minecraft/">Minecraft Server</a></li>-->
@@ -90,7 +91,7 @@
                 <li><a href="/contact/">Contact</a></li>
             </ul>
                       <ul class="notAList">
-                <li><button class="noUI" onClick="toggleSettings()"><i class="fa-solid fa-gear" title="Settings"></i></button></li>
+                <li  class="active"><button class="noUI" onClick="toggleSettings()"><i class="fa-solid fa-gear" title="Settings"></i></button></li>
                 <li><a href="https://github.com/actuallyaridan"><i class="fa-brands fa-github"
                             title="GitHub"></i></a></li>
                 <li><a href="https://twitter.com/actuallyaridan"><i class="fa-brands fa-twitter"
@@ -102,17 +103,16 @@
 
     <main class="container">
         <div class="info">
-            <p class="icon"><i class="fa-solid fa-briefcase icon-background"></i></p>
+            <p class="icon"><i class="fa-solid fa-cog icon-background"></i></p>
             <div>
-                <h1 class="name">Career</h1>
-                <p class="description titleColor">I've had various jobs at a few companies. I've worked in tech repair,
-                    IT support for a municipality, and general support for an IoT company, and I'm only getting started!
+                <h1 class="name">Settings</h1>
+                <p class="description titleColor">Adjust colors and settings to your liking.
                 </p>
-                <a class="button" href="mailto:adnan@aridan.net"><i class="fa-solid fa-envelope"></i>Get in touch</a>
             </div>
         </div>
         <hr>
-        <hr>
+        <!-- Filled by settingsPanel.js with the same panel the desktop modal uses. -->
+        <div id="settingsInline"></div>
     </main>
 
     <footer>

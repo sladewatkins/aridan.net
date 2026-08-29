@@ -1069,6 +1069,7 @@ border: 1px solid var(--liquid-glass-button-border);
 .preview>span>.date {
     margin-top: .25em;
     display: flex;
+    text-align: right;
 }
 
 .preview > span > h3 {

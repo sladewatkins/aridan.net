@@ -194,6 +194,24 @@ select {
 
 }
 
+/* Wraps the shared settings controls in both the modal and /settings/. It
+   repeats .modal-content's centring because it now sits between the two. */
+.settingsPanel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Inline on /settings/ there is no modal box to shrink to, so fill the column. */
+#settingsInline {
+    width: 100%;
+}
+
+#settingsInline .settingsPanel,
+#settingsInline .modalSettings {
+    width: 100%;
+}
+
 .modalDescription {
     color: var(--secondary-title-color);
     margin-bottom: 12px;

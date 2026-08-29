@@ -3,6 +3,13 @@
 
     var Store = window.ArticleStore;
 
+    // These buttons are built after the i18n pass, so they translate themselves
+    // and re-run everything in `retranslate` when the language changes.
+    function t() {
+        return window.i18n ? window.i18n.t.apply(null, arguments) : arguments[0];
+    }
+    var retranslate = [];
+
     function editUrl(slug) {
         return "/articles/edit/index.html?article=" + encodeURIComponent(slug);
     }
@@ -42,7 +49,7 @@
         link.id = "newArticleButton";
         link.className = "button primary";
         link.href = "/articles/new/";
-        link.innerHTML = '<i class="fa-solid fa-plus"></i>New article';
+        link.innerHTML = '<i class="fa-solid fa-plus"></i>' + t("New article");
         info.appendChild(link);
 
         addNoticeBar(info);
@@ -55,24 +62,29 @@
             line.textContent = Store.UNSUPPORTED;
             warn.appendChild(line);
             (info.parentNode || info).appendChild(warn);
+            retranslate.push(function () { line.textContent = Store.UNSUPPORTED; });
         }
+        retranslate.push(function () {
+            link.innerHTML = '<i class="fa-solid fa-plus"></i>' + t("New article");
+        });
     }
 
     function removeArticle(slug, onGone) {
-        if (!confirm('Delete "' + slug + '"?\n\nThis deletes the file from assets/content/articles/ and cannot be undone.')) {
+        if (!confirm(t('Delete "{0}"?', slug) + "\n\n" +
+                     t("This deletes the file from assets/content/articles/ and cannot be undone."))) {
             return;
         }
-        notice("Deleting " + slug + "…");
+        notice(t("Deleting {0}…", slug));
         Store.getDir(true)
             .then(function (dir) {
-                if (!dir) { notice("No folder selected, so nothing was deleted.", "error"); return; }
+                if (!dir) { notice(t("No folder selected, so nothing was deleted."), "error"); return; }
                 return Store.deleteArticle(dir, slug)
                     .then(function () { return Store.rebuildIndex(dir); })
                     .then(function (slugs) { onGone(slugs); });
             })
             .catch(function (err) {
                 console.error(err);
-                notice("Couldn't delete " + slug + ": " + err.message, "error");
+                notice(t("Couldn't delete {0}: {1}", slug, err.message), "error");
             });
     }
 
@@ -80,6 +92,10 @@
         del.disabled = true;
         del.title = Store.CANNOT_DELETE;
         del.setAttribute("aria-label", Store.CANNOT_DELETE);
+        retranslate.push(function () {
+            del.title = Store.CANNOT_DELETE;
+            del.setAttribute("aria-label", Store.CANNOT_DELETE);
+        });
     }
 
     function decorate(card) {
@@ -93,22 +109,32 @@
         var edit = document.createElement("a");
         edit.className = "button";
         edit.href = editUrl(slug);
-        edit.title = "Edit this article";
-        edit.setAttribute("aria-label", "Edit this article");
+        edit.title = t("Edit this article");
+        edit.setAttribute("aria-label", t("Edit this article"));
         edit.innerHTML = '<i class="fa-solid fa-pen"></i>';
 
-        var del = button("destructive", "Delete this article", "fa-trash-can");
+        var del = button("destructive", t("Delete this article"), "fa-trash-can");
         if (Store.isSupported()) {
             del.addEventListener("click", function () {
                 removeArticle(slug, function (slugs) {
                     card.remove();
-                    notice("Deleted " + slug + ".md. " + slugs.length +
-                           " article" + (slugs.length === 1 ? "" : "s") + " left.", "ok");
+                    notice(slugs.length === 1
+                        ? t("Deleted {0}.md. 1 article left.", slug)
+                        : t("Deleted {0}.md. {1} articles left.", slug, slugs.length), "ok");
                 });
             });
         } else {
             disableDelete(del);
         }
+
+        retranslate.push(function () {
+            edit.title = t("Edit this article");
+            edit.setAttribute("aria-label", t("Edit this article"));
+            if (!del.disabled) {
+                del.title = t("Delete this article");
+                del.setAttribute("aria-label", t("Delete this article"));
+            }
+        });
 
         group.appendChild(edit);
         group.appendChild(del);
@@ -141,12 +167,16 @@
 
         if (back) row.appendChild(back);
 
-        var edit = labelledButton("a", "", "fa-pen", "Edit");
+        var edit = labelledButton("a", "", "fa-pen", t("Edit"));
         edit.href = editUrl(slug);
         row.appendChild(edit);
 
-        var del = labelledButton("button", "destructive", "fa-trash-can", "Delete");
+        var del = labelledButton("button", "destructive", "fa-trash-can", t("Delete"));
         del.type = "button";
+        retranslate.push(function () {
+            edit.innerHTML = '<i class="fa-solid fa-pen"></i>' + t("Edit");
+            del.innerHTML = '<i class="fa-solid fa-trash-can"></i>' + t("Delete");
+        });
         if (Store.isSupported()) {
             del.addEventListener("click", function () {
                 removeArticle(slug, function () {
@@ -164,6 +194,12 @@
 
     function init() {
         if (!Store || !Store.isLocalHost()) return;
+
+        if (window.i18n) {
+            window.i18n.onChange(function () {
+                retranslate.forEach(function (fn) { fn(); });
+            });
+        }
 
         var onArticlePage = /\/articles\/view\//.test(location.pathname);
 

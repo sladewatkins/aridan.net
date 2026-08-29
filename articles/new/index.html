@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8">    
 <script src="/src/js/settings.js" async></script>
+    <script src="/src/js/settingsPanel.js" defer></script>
     <script src="/src/js/settingsModal.js" defer></script>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="description"
@@ -106,11 +107,10 @@
                         <i class="fa-solid fa-download"></i>Download
                     </button>
                 </div>
-                <p class="editorStatus" id="editorStatus" role="status" aria-live="polite"></p>
             </div>
 
             <span class="warn" id="editorFolderBar">
-                <p><span id="editorFolderState">No folder selected yet.</span></p>
+                <p role="status" aria-live="polite"><span id="editorFolderState">No folder selected yet.</span></p>
                 <button type="button" class="button" id="editorPickFolder"
                     title="Pick assets/content/articles/">Select folder</button>
             </span>

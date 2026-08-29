@@ -5,14 +5,22 @@ body.editorPage main.container {
 #editorFolderBar {
     display: flex;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    /* Matches the 32px below it. The status line that used to sit above the bar
+       was contributing its min-height to this gap; it now lives inside the bar,
+       so the spacing is stated here instead of being a side effect. */
+    margin-top: 32px;
+    /* It swaps between folder state, progress, success and error - ease between. */
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+    justify-content: space-between;
 }
 
 #editorFolderBar p {
     margin: 0;
     display: flex;
-    align-items: center;
+    align-items: start;
     gap: 8px;
+    text-align: left;
 }
 
 #editorFolderBar .button {
@@ -35,6 +43,14 @@ body.editorPage main.container {
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     box-shadow: none;
+}
+
+/* The bar doubles as the status line, so a success message tints it. */
+.style-flat #editorFolderBar.ok,
+.style-liquid-glass #editorFolderBar.ok {
+    background-color: color-mix(in srgb, var(--accent-color) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color) 35%, transparent);
+    color: var(--paragraph-color);
 }
 
 .browserSupportWarning {
@@ -130,11 +146,8 @@ body.editorPage main.container {
     min-height: 320px;
 }
 
-.editorStatus,
 .articleAdminNotice { min-height: 1.4em; margin: 0; }
-.editorStatus.ok,
 .articleAdminNotice.ok { color: var(--accent-color); }
-.editorStatus.error,
 .articleAdminNotice.error { color: #ff3b30; }
 
 .editorPreview .article-content {

@@ -4,6 +4,11 @@
     var AF = window.ArticleFormat;
     var Store = window.ArticleStore;
 
+    // Text written from here lands after the i18n pass, so it translates itself.
+    function t() {
+        return window.i18n ? window.i18n.t.apply(null, arguments) : arguments[0];
+    }
+
     var isEdit = /\/articles\/edit\//.test(location.pathname);
     var originalSlug = null;
     var slugEditedByHand = false;
@@ -66,13 +71,47 @@
         }
     }
 
+    /* The folder bar doubles as the status line: it shows what will happen to the
+       file ("Saving into X") until there is something to report, then the message
+       takes over until it is cleared. One place to look, instead of a message
+       appearing in a separate line above it. */
+    var currentDir = null;
+    var statusMessage = "";
+    var statusKind = "";
+
+    function folderText() {
+        if (!Store.isSupported()) return Store.UNSUPPORTED;
+        return currentDir
+            ? t('Saving into "{0}".', currentDir.name)
+            : t("No folder selected yet.");
+    }
+
+    function renderFolderBar() {
+        if (!el.folderState || !el.folderBar) return;
+        el.folderState.textContent = statusMessage || folderText();
+
+        // Red only when something is actually wrong: an error, or no folder yet
+        // and nothing else to say.
+        var problem = statusKind === "error" || (!statusMessage && !currentDir);
+        el.folderBar.classList.toggle("resolved", !problem);
+        el.folderBar.classList.toggle("ok", statusKind === "ok");
+
+        if (el.pickFolder) {
+            el.pickFolder.textContent = currentDir ? t("Change") : t("Select folder");
+            el.pickFolder.title = currentDir
+                ? t("Pick a different folder")
+                : t("Pick assets/content/articles/");
+        }
+    }
+
     function status(message, kind) {
-        el.status.textContent = message || "";
-        el.status.className = "editorStatus" + (kind ? " " + kind : "");
+        statusMessage = message || "";
+        statusKind = statusMessage ? (kind || "") : "";
+        renderFolderBar();
     }
 
     function isShowingError() {
-        return el.status.classList.contains("error");
+        return statusKind === "error";
     }
 
     function markDirty() {
@@ -87,11 +126,22 @@
         });
     }
 
+    /* `why` is re-read through a getter on each language change, so the tooltip
+       follows along rather than freezing in whatever language it was set in. */
+    var disabledReasons = [];
+
     function disablePermanently(button, why) {
         if (!button) return;
         button.disabled = true;
-        button.title = why;
+        button.title = typeof why === "function" ? why() : why;
         button.dataset.permanentlyDisabled = "true";
+        disabledReasons.push([button, why]);
+    }
+
+    function refreshDisabledReasons() {
+        disabledReasons.forEach(function (pair) {
+            pair[0].title = typeof pair[1] === "function" ? pair[1]() : pair[1];
+        });
     }
 
     function buildFile() {
@@ -113,16 +163,16 @@
     }
 
     function validate() {
-        if (!el.title.value.trim()) return { field: el.title, message: "Give the article a title." };
-        if (!el.slug.value.trim()) return { field: el.slug, message: "Give the article a file name." };
+        if (!el.title.value.trim()) return { field: el.title, message: t("Give the article a title.") };
+        if (!el.slug.value.trim()) return { field: el.slug, message: t("Give the article a file name.") };
         if (!AF.isValidSlug(el.slug.value.trim())) {
             return {
                 field: el.slug,
-                message: "File name can only use lowercase letters, numbers and dashes."
+                message: t("File name can only use lowercase letters, numbers and dashes.")
             };
         }
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(el.date.value)) return { field: el.date, message: "Pick a date." };
-        if (!bodyEditor.get().trim()) return { field: null, message: "The article has no body yet." };
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(el.date.value)) return { field: el.date, message: t("Pick a date.") };
+        if (!bodyEditor.get().trim()) return { field: null, message: t("The article has no body yet.") };
         return null;
     }
 
@@ -132,16 +182,8 @@
     }
 
     function setFolderState(dir) {
-        el.folderState.textContent = dir
-            ? 'Saving into "' + dir.name + '".'
-            : "No folder selected yet.";
-        el.folderBar.classList.toggle("resolved", !!dir);
-        if (el.pickFolder) {
-            el.pickFolder.textContent = dir ? "Change" : "Select folder";
-            el.pickFolder.title = dir
-                ? "Pick a different folder"
-                : "Pick assets/content/articles/";
-        }
+        currentDir = dir;
+        renderFolderBar();
         return dir;
     }
 
@@ -150,8 +192,8 @@
         return Store.looksLikeArticlesDir(dir).then(function (looksRight) {
             if (looksRight) return dir;
             var ok = confirm(
-                '"' + dir.name + '" has no articles in it.\n\n' +
-                "Saving here creates a new index.json in that folder. Use it anyway?"
+                t('"{0}" has no articles in it.', dir.name) + "\n\n" +
+                t("Saving here creates a new index.json in that folder. Use it anyway?")
             );
             return ok ? dir : null;
         });
@@ -167,7 +209,7 @@
                 return dir;
             })
             .catch(function (err) {
-                status("Couldn't open that folder: " + err.message, "error");
+                status(t("Couldn't open that folder: {0}", err.message), "error");
                 return null;
             });
     }
@@ -176,10 +218,11 @@
         return Store.getDir(true).then(setFolderState);
     }
 
-    function failed(what) {
+    // key carries {0} for arg and {1} for the error message.
+    function failed(key, arg) {
         return function (err) {
             console.error(err);
-            status("Couldn't " + what + ": " + err.message, "error");
+            status(t(key, arg, err.message), "error");
         };
     }
 
@@ -199,44 +242,44 @@
         var contents = buildFile();
 
         setBusy(true);
-        status("Saving…");
+        status(t("Saving…"));
 
         ensureFolder()
             .then(function (dir) {
-                if (!dir) { status("No folder selected, so nothing was saved.", "error"); return; }
+                if (!dir) { status(t("No folder selected, so nothing was saved."), "error"); return; }
 
                 return Store.exists(dir, slug).then(function (already) {
                     if (already && slug !== originalSlug &&
-                        !confirm(slug + ".md already exists in this folder. Overwrite it?")) {
-                        status("Nothing was saved.");
+                        !confirm(t("{0}.md already exists in this folder. Overwrite it?", slug))) {
+                        status(t("Nothing was saved."));
                         return;
                     }
                     return Store.writeArticle(dir, slug, contents)
                         .then(function () { return Store.rebuildIndex(dir); })
                         .then(function () {
                             dirty = false;
-                            status("Saved " + slug + ".md. Opening it…", "ok");
+                            status(t("Saved {0}.md. Opening it…", slug), "ok");
                             location.href = viewUrl(slug);
                         });
                 });
             })
-            .catch(failed("save " + slug + ".md"))
+            .catch(failed("Couldn't save {0}.md: {1}", slug))
             .finally(function () { setBusy(false); });
     }
 
     function remove() {
         if (busy || !originalSlug) return;
-        if (!confirm('Delete "' + originalSlug + '"?\n\nThis deletes the file from ' +
-                     "assets/content/articles/ and cannot be undone.")) {
+        if (!confirm(t('Delete "{0}"?', originalSlug) + "\n\n" +
+                     t("This deletes the file from assets/content/articles/ and cannot be undone."))) {
             return;
         }
 
         setBusy(true);
-        status("Deleting…");
+        status(t("Deleting…"));
 
         ensureFolder()
             .then(function (dir) {
-                if (!dir) { status("No folder selected, so nothing was deleted.", "error"); return; }
+                if (!dir) { status(t("No folder selected, so nothing was deleted."), "error"); return; }
                 return Store.deleteArticle(dir, originalSlug)
                     .then(function () { return Store.rebuildIndex(dir); })
                     .then(function () {
@@ -244,7 +287,7 @@
                         location.href = "/articles/";
                     });
             })
-            .catch(failed("delete " + originalSlug))
+            .catch(failed("Couldn't delete {0}: {1}", originalSlug))
             .finally(function () { setBusy(false); });
     }
 
@@ -264,10 +307,8 @@
 
         status(
             isEdit
-                ? "Downloaded " + slug + ".md. Replace the file of the same name wihh it in " +
-                  "assets/content/articles/."
-                : "Downloaded " + slug + '.md. Move it into assets/content/articles/ and add "' +
-                  slug + '" to index.json.',
+                ? t("Downloaded {0}.md. Replace the file of the same name with it in assets/content/articles/.", slug)
+                : t('Downloaded {0}.md. Move it into assets/content/articles/ and add "{0}" to index.json.', slug),
             "ok"
         );
     }
@@ -291,19 +332,19 @@
     function loadForEditing() {
         var slug = new URLSearchParams(location.search).get("article");
         if (!slug || !AF.isValidSlug(slug)) {
-            cannotEdit("No article to edit - open this page from the Articles list.",
-                       "There's no article loaded.");
+            cannotEdit(t("No article to edit - open this page from the Articles list."),
+                       t("There's no article loaded."));
             return;
         }
 
         originalSlug = slug;
         el.slug.value = slug;
         el.slug.readOnly = true;
-        el.slugHint.textContent = "You can't change the file name of an existing article.";
+        el.slugHint.textContent = t("You can't change the file name of an existing article.");
 
         fetch(AF.DIR_URL + encodeURIComponent(slug) + ".md", { cache: "no-cache" })
             .then(function (res) {
-                if (!res.ok) throw new Error("Couldn't load " + slug + ".md (" + res.status + ").");
+                if (!res.ok) throw new Error(t("Couldn't load {0}.md ({1}).", slug, res.status));
                 return res.text();
             })
             .then(function (text) {
@@ -313,7 +354,7 @@
                 status("");
             })
             .catch(function (err) {
-                cannotEdit(err.message, "This article couldn't be loaded.");
+                cannotEdit(err.message, t("This article couldn't be loaded."));
             });
     }
 
@@ -344,7 +385,6 @@
             bodyHost: document.getElementById("fieldBodyEditor"),
             layout: document.querySelector(".editorLayout"),
             spinner: document.getElementById("loading"),
-            status: document.getElementById("editorStatus"),
             folderBar: document.getElementById("editorFolderBar"),
             folderState: document.getElementById("editorFolderState"),
             pickFolder: document.getElementById("editorPickFolder"),
@@ -370,14 +410,22 @@
         if (el.remove) el.remove.addEventListener("click", remove);
         if (el.pickFolder) el.pickFolder.addEventListener("click", pickFolder);
 
+        // This chrome is written after the i18n pass, so redraw it on every change.
+        if (window.i18n) {
+            window.i18n.onChange(function () {
+                renderFolderBar();
+                refreshDisabledReasons();
+            });
+        }
+
         if (Store.isSupported()) {
             Store.savedDir(false).then(setFolderState);
         } else {
             if (el.pickFolder) el.pickFolder.remove();
             el.pickFolder = null;
-            el.folderState.textContent = Store.UNSUPPORTED;
-            disablePermanently(el.save, Store.CANNOT_SAVE);
-            disablePermanently(el.remove, Store.CANNOT_DELETE);
+            disablePermanently(el.save, function () { return Store.CANNOT_SAVE; });
+            disablePermanently(el.remove, function () { return Store.CANNOT_DELETE; });
+            renderFolderBar(); // folderText() reports the unsupported browser
             el.download.classList.add("primary");
         }
 

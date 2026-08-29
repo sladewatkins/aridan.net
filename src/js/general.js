@@ -35,8 +35,23 @@ function toggleMenu() {
     document.getElementById("mobileMenuID").classList.toggle("showMenu");
 }
 
+/* Desktop opens the settings in a modal; mobile hands off to /settings/, which
+   shows the same panel inline. 966px is where the header swaps over. */
 function toggleSettings() {
-    document.getElementById("settingsDialog").classList.toggle("showMenuNoAnimation");
+    const inline = document.getElementById("settingsInline");
+    if (inline) { // already on /settings/, nothing to open
+        inline.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+    }
+
+    if (window.matchMedia("(max-width: 966px)").matches) {
+        location.href = "/settings/";
+        return;
+    }
+
+    const dialog = document.getElementById("settingsDialog");
+    if (!dialog) return;
+    dialog.classList.toggle("showMenuNoAnimation");
     document.getElementById("settingsModalMenu").classList.toggle("showMenuNoAnimation");
 }
 /* The sliding pill (Liquid Glass only): it sits behind the active item of a
@@ -115,6 +130,7 @@ function toggleSettings() {
     const dicts = {};                   // lang -> dictionary (English text -> translation)
     let current = null;                 // active dictionary, or null for English
     let currentLang = "en";
+    const listeners = [];                // re-render hooks for JS-generated text
     const originals = new WeakMap();     // element -> its original English innerHTML
     const nodeOriginals = new WeakMap(); // text node -> its original English value
     const translated = new WeakSet();    // elements currently showing a translation
@@ -135,13 +151,37 @@ function toggleSettings() {
         "main .pi-label",
         "main .pi-stat-label",
         "main p.statusWrapper",
-        "main .warn p",
+        /* Not #editorFolderBar: its <p> wraps a <span id="editorFolderState"> that
+           the editor writes into, and swapping innerHTML here would replace the
+           span with plain text - after which setFolderState() updates a detached
+           node and the bar silently stops refreshing. That text translates itself
+           through i18n.t() instead. */
+        "main .warn:not(#editorFolderBar) p",
+        // Article editor chrome. The toolbar inside #fieldBodyEditor belongs to
+        // Toast UI and is left to the library.
+        "main .articleAdminBar > button.button",
+        "main #editorFolderBar > button.button",
+        "main .editorField > span",
+        "main .editorField > small",
         ".modal h2",
-        ".modal h3",
-        ".modal label.theme-label",
-        ".modal label.button",
-        ".modal label.title",
+        // .settingsPanel, not .modal: the same panel also renders inline on /settings/.
+        ".settingsPanel h3",
+        ".settingsPanel label.theme-label",
+        ".settingsPanel label.button",
+        ".settingsPanel label.title",
         ".modalButtons button"
+    ];
+
+    /* Text held in attributes rather than in the document: placeholders and the
+       tooltips on icon-only buttons. [selector, attribute] pairs. */
+    const ATTR_SELECTORS = [
+        ["main .editorField > input[placeholder]", "placeholder"],
+        ["main .editorField > textarea[placeholder]", "placeholder"],
+        ["main .articleAdminBar [title]", "title"],
+        ["main .articleAdminActions [title]", "title"],
+        ["main .readMore a[title]", "title"],
+        ["main #editorFolderBar [title]", "title"],
+        ["main .article-navigation a[title]", "title"]
     ];
 
     const normalize = (s) => (s || "").replace(/\s+/g, " ").trim();
@@ -172,6 +212,19 @@ function toggleSettings() {
         el.appendChild(document.createTextNode(value));
     }
 
+    /* Attribute originals live on the element itself (data-i18n-<attr>) rather
+       than in a WeakMap, so elements rebuilt by the editor keep working. */
+    function swapAttrs() {
+        ATTR_SELECTORS.forEach(([sel, attr]) => {
+            document.querySelectorAll(sel).forEach((el) => {
+                const keep = "data-i18n-" + attr;
+                if (!el.hasAttribute(keep)) el.setAttribute(keep, el.getAttribute(attr) || "");
+                const original = el.getAttribute(keep);
+                el.setAttribute(attr, tr(normalize(original)) === normalize(original) ? original : tr(normalize(original)));
+            });
+        });
+    }
+
     function swap() {
         collect().forEach((el) => {
             if (!originals.has(el)) originals.set(el, el.innerHTML);
@@ -180,6 +233,7 @@ function toggleSettings() {
             if (val != null) { apply(el, val); translated.add(el); }
             else if (translated.has(el)) { el.innerHTML = original; translated.delete(el); }
         });
+        swapAttrs();
         // Loose text nodes not covered by an element selector.
         swapTextNode(document.querySelector("main .description.white"), "a swedish");
         swapTextNode(document.getElementById("statusWrapperConnecting"), "Connecting");
@@ -217,6 +271,7 @@ function toggleSettings() {
         const sel = document.getElementById("language");
         if (sel) sel.value = currentLang;
         swap();
+        listeners.forEach((fn) => { try { fn(currentLang); } catch (e) { console.error(e); } });
         reveal(); // show the (now translated) page; no-op if it was never hidden
     }
 
@@ -233,6 +288,25 @@ function toggleSettings() {
             .then((d) => { dicts[lang] = d; current = d; applyLanguage(); })
             .catch(reveal);
     }
+
+    /* Text that JavaScript writes after the page has loaded can't be reached by
+       the swap above - it would just be overwritten. Those callers translate at
+       the point of writing with i18n.t(), and re-render via i18n.onChange().
+
+           el.button.textContent = i18n.t("Select folder");
+           status(i18n.t("Deleted {0}.md.", slug));
+
+       Keys are the English string, same as the dictionary; {0}, {1}... are filled
+       from the extra arguments. An untranslated key returns the English. */
+    window.i18n = {
+        t(en) {
+            let s = tr(normalize(en));
+            for (let i = 1; i < arguments.length; i++) s = s.split("{" + (i - 1) + "}").join(arguments[i]);
+            return s;
+        },
+        get lang() { return currentLang; },
+        onChange(fn) { listeners.push(fn); if (current || currentLang === "en") fn(currentLang); }
+    };
 
     function initI18n() {
         const sel = document.getElementById("language");

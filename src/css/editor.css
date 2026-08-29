@@ -91,9 +91,14 @@ body.editorPage main.container {
     background-color: var(--button-background-color);
 }
 
+/* Text fields wear .button, but must not react like one. */
 .style-liquid-glass .editorField input.button:hover,
 .style-liquid-glass .editorField textarea.button:hover {
     background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .editorField input[type="date"].button:read-only {
@@ -272,7 +277,6 @@ main > .section > .section-content code {
     backdrop-filter: blur(12px);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
         0 4px 16px rgba(0, 0, 0, 0.2);
 }
 

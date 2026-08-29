@@ -276,6 +276,12 @@ li>a, li>button.noUI {
     border-bottom: 2px solid transparent;
     text-decoration: none;
     color: var(--header-text-color);
+    transition: color .2s ease, border-color .2s ease, background-color .2s ease, opacity .12s ease;
+}
+
+/* Nav links are inline, so transform is a no-op here, dim them on press instead. */
+li>a:active, li>button.noUI:active {
+    opacity: .55;
 }
 
 .style-flat li>a, .style-flat li>button.noUI {
@@ -389,12 +395,17 @@ li>a, li>button.noUI {
     font-size: 1em;
     font-weight: 550;
     cursor: pointer;
-    transition: background-color 0.3s;
+    display: inline-block;
+    transition: background-color .2s ease, transform .12s ease, box-shadow .2s ease;
     text-decoration: none;
 }
 
 .get-button:hover {
     background-color: var(--accent-color-hover);
+}
+
+.get-button:active {
+    transform: scale(0.96);
 }
 
 /* Photos */
@@ -627,6 +638,19 @@ hr {
 
 }
 
+/* The dropdown is part of the nav, so it gets the same glass surface as
+   `header>div` above it, including the bottom inset, which nav bars keep. */
+.style-liquid-glass .mobileMenu {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 28px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 .mobileMenu>ul{
     display: flex;
     align-items: center;
@@ -639,14 +663,17 @@ hr {
 }
 
 
-.style-liquid-glass .mobileMenu>ul>li, header#mobile-header>div>ul.notAList>li {
+.style-liquid-glass .mobileMenu>ul>li,
+.style-liquid-glass header#mobile-header>div>ul.notAList>li {
     border-radius: min(43.25rem, 4.65rem + 36.5vw);
         -webkit-tap-highlight-color: transparent;
     tap-highlight-color: transparent;
 }
 
 
-.style-liquid-glass .mobileMenu>ul>li>a, .mobileMenu>ul>li>button.noUI, header#mobile-header>div>ul.notAList>li>a {
+.style-liquid-glass .mobileMenu>ul>li>a,
+.style-liquid-glass .mobileMenu>ul>li>button.noUI,
+.style-liquid-glass header#mobile-header>div>ul.notAList>li>a {
     border: 1px solid transparent;
     background-color: transparent;
     border-radius: min(43.25rem, 4.65rem + 36.5vw);
@@ -656,7 +683,17 @@ hr {
 
 
 
-.style-liquid-glass .mobileMenu>ul>li.active>a, .mobileMenu>ul>li.active>button.noUI, header#mobile-header>div>ul.notAList>li.active>a {
+.style-liquid-glass .mobileMenu>ul>li>a:hover,
+.style-liquid-glass .mobileMenu>ul>li>button.noUI:hover,
+.style-liquid-glass header#mobile-header>div>ul.notAList>li>a:hover {
+    border-color: var(--liquid-glass-button-border);
+    background-color: var(--liquid-glass-button-background);
+    color: var(--header-text-color-hover);
+}
+
+.style-liquid-glass .mobileMenu>ul>li.active>a,
+.style-liquid-glass .mobileMenu>ul>li.active>button.noUI,
+.style-liquid-glass header#mobile-header>div>ul.notAList>li.active>a {
     border: 1px solid var(--liquid-glass-button-border);
     background-color: var(--liquid-glass-button-slected);
     border-radius: min(43.25rem, 4.65rem + 36.5vw);
@@ -694,7 +731,7 @@ ul.specs {
     font-size: 1em;
     font-weight: 550;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color .2s ease, color .2s ease, transform .12s ease;
     text-decoration: none;
 }
 
@@ -713,15 +750,33 @@ ul.specs {
     color: var(--paragraph-color);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
+    /* Top rim highlight only. The bottom inset ("chin") is reserved for the
+       nav bars, so controls don't compete with them for elevation. */
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
         0 4px 16px rgba(0, 0, 0, 0.2);
-    
+
 }
 
-.button:hover{
+/* `:where()` contributes no specificity, so these guards keep disabled buttons
+   inert without disturbing the cascade against the .primary/.secondary/
+   .destructive hover rules further down. */
+.style-flat .button:hover:where(:not(:disabled)) {
     background-color: var(--button-hover-background-color);
+}
+
+/* Glass buttons brighten instead of turning into a flat grey slab. */
+.style-liquid-glass .button:hover:where(:not(:disabled)) {
+    background: rgba(127, 127, 127, 0.18);
+    border-color: rgba(127, 127, 127, 0.3);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.style-flat .button:active:where(:not(:disabled)),
+.style-liquid-glass .button:active:where(:not(:disabled)) {
+    transform: scale(0.95);
 }
 
 .fa-solid,
@@ -793,13 +848,13 @@ border: 1px solid var(--liquid-glass-button-border);
 }
 
 
-.style-liquid-glass .button:active {
-    transform: scale(0.95);
-    transition: transform 0.1s ease-in-out;
-}
-
 .style-liquid-glass .button {
-    transition: transform 0.1s ease-in-out;
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease,
+        color .2s ease,
+        transform .12s ease;
 }
 
 
@@ -856,11 +911,15 @@ select.button {
 
 .linkCompany>a {
     color: var(--secondary-title-color);
+    transition: color .2s ease, opacity .12s ease;
 }
 
 .linkCompany>a:hover {
     color: var(--text-color);
-    transition: color 0.2s;
+}
+
+.linkCompany>a:active {
+    opacity: .55;
 }
 
 .sosumi {
@@ -1135,6 +1194,11 @@ border: 1px solid var(--liquid-glass-button-border);
 }
 
 .backButton {
+    /* Needs a block box or the :active scale is ignored, but inline-block
+       rather than flex so it keeps the same text line box height as the
+       labelled buttons it sits next to. */
+    display: inline-block;
+    text-align: center;
     margin: 0px;
     gap: 0px;
 }
@@ -1286,12 +1350,16 @@ span.token{
     gap: 40px;
     font-size: 1em;
     font-weight: 500;
+    transition: background-color .2s ease, color .2s ease, transform .12s ease;
 }
 
 .contactMe>div>a:hover {
     background-color: var(--button-hover-background-color);
     color: var(--text-color);
-    transition: background-color 0.3s, color 0.3s;
+}
+
+.contactMe>div>a:active {
+    transform: scale(0.97);
 }
 
 
@@ -1380,12 +1448,15 @@ span.token{
     font-size: 1em;
     font-weight: 500;
     flex-grow: 2;
-    transition: background-color 0.3s, color 0.3s;
+    transition: background-color .2s ease, color .2s ease, transform .12s ease;
 }
 
 .grid-links>a:hover, .full-button>a:hover {
     background-color: var(--button-hover-background-color);
-    transition: background-color 0.3s, color 0.3s;
+}
+
+.grid-links>a:active, .full-button>a:active {
+    transform: scale(0.97);
 }
 
 .full-button>a{
@@ -1402,8 +1473,10 @@ span.token{
     backdrop-filter: none;
 }
 
-.style-liquid-glass .primary:hover {
-   
+.style-liquid-glass .primary:hover:where(:not(:disabled)) {
+    background: var(--accent-color-hover);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
 }
 
 .style-liquid-glass .secondary {
@@ -1417,8 +1490,12 @@ span.token{
         0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.style-liquid-glass .secondary:hover {
+.style-liquid-glass .secondary:hover:where(:not(:disabled)) {
     background: rgba(var(--accent-color-rgb), 0.22);
+    border-color: transparent;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .style-liquid-glass .destructive {
@@ -1432,8 +1509,24 @@ span.token{
         0 4px 16px rgba(249, 76, 87, 0.1);
 }
 
-.style-liquid-glass .destructive:hover {
-    background: rgba(249, 76, 87, 0.22);
+.style-liquid-glass .destructive:hover:where(:not(:disabled)) {
+    background: rgba(249, 76, 87, 0.28);
+    border-color: rgba(249, 76, 87, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 6px 20px rgba(249, 76, 87, 0.18);
+}
+
+/* Colour feedback still reads fine without motion; the scale on press does not. */
+@media (prefers-reduced-motion: reduce) {
+    .style-flat .button:active,
+    .style-liquid-glass .button:active,
+    .get-button:active,
+    .grid-links>a:active,
+    .full-button>a:active,
+    .contactMe>div>a:active {
+        transform: none;
+    }
 }
 
 /* Animations */

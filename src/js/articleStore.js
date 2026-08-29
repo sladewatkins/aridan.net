@@ -14,9 +14,6 @@
         if (!m) return false;
         var a = Number(m[1]), b = Number(m[2]);
         if (a === 127) return true;
-        if (a === 10) return true;
-        if (a === 192 && b === 168) return true;
-        if (a === 172 && b >= 16 && b <= 31) return true;
         if (a === 169 && b === 254) return true;
         return false;
     }
@@ -186,9 +183,9 @@
             .catch(function () { return false; });
     }
 
-    var UNSUPPORTED = "This browser can't save or delete articles - use Download .md instead.";
-    var CANNOT_SAVE = "Saving needs Chrome, Edge or Opera.";
-    var CANNOT_DELETE = "Deleting needs Chrome, Edge or Opera.";
+    var UNSUPPORTED = "You need to use a Chromium browser to save or delete articles.";
+    var CANNOT_SAVE = "Use a Chromium browser to save articles.";
+    var CANNOT_DELETE = "Use a Chromium browser to delete articles.";
 
     global.ArticleStore = {
         UNSUPPORTED: UNSUPPORTED,

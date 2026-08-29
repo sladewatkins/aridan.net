@@ -134,10 +134,10 @@
     function setFolderState(dir) {
         el.folderState.textContent = dir
             ? 'Saving into "' + dir.name + '".'
-            : "No folder chosen yet.";
+            : "No folder selected yet.";
         el.folderBar.classList.toggle("resolved", !!dir);
         if (el.pickFolder) {
-            el.pickFolder.textContent = dir ? "Change" : "Choose folder";
+            el.pickFolder.textContent = dir ? "Change" : "Select folder";
             el.pickFolder.title = dir
                 ? "Pick a different folder"
                 : "Pick assets/content/articles/";
@@ -203,7 +203,7 @@
 
         ensureFolder()
             .then(function (dir) {
-                if (!dir) { status("No folder chosen, so nothing was saved.", "error"); return; }
+                if (!dir) { status("No folder selected, so nothing was saved.", "error"); return; }
 
                 return Store.exists(dir, slug).then(function (already) {
                     if (already && slug !== originalSlug &&
@@ -236,7 +236,7 @@
 
         ensureFolder()
             .then(function (dir) {
-                if (!dir) { status("No folder chosen, so nothing was deleted.", "error"); return; }
+                if (!dir) { status("No folder selected, so nothing was deleted.", "error"); return; }
                 return Store.deleteArticle(dir, originalSlug)
                     .then(function () { return Store.rebuildIndex(dir); })
                     .then(function () {
@@ -264,9 +264,9 @@
 
         status(
             isEdit
-                ? "Downloaded " + slug + ".md - replace the file of the same name in " +
-                  "assets/content/articles/ to save your changes."
-                : "Downloaded " + slug + '.md - move it into assets/content/articles/ and add "' +
+                ? "Downloaded " + slug + ".md. Replace the file of the same name wihh it in " +
+                  "assets/content/articles/."
+                : "Downloaded " + slug + '.md. Move it into assets/content/articles/ and add "' +
                   slug + '" to index.json.',
             "ok"
         );
@@ -299,7 +299,7 @@
         originalSlug = slug;
         el.slug.value = slug;
         el.slug.readOnly = true;
-        el.slugHint.textContent = "Fixed for an existing article, so its address doesn't change.";
+        el.slugHint.textContent = "You can't change the file name of an existing article.";
 
         fetch(AF.DIR_URL + encodeURIComponent(slug) + ".md", { cache: "no-cache" })
             .then(function (res) {

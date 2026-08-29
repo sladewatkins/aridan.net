@@ -76,7 +76,7 @@
             .then(function (articles) {
                 var found = articles.filter(Boolean);
                 if (!found.length) {
-                    message(container, "No articles yet.");
+                    message(container, "No articles found...yet!");
                     document.dispatchEvent(new CustomEvent("articles:rendered"));
                     return;
                 }
@@ -90,7 +90,7 @@
             })
             .catch(function (err) {
                 console.error("Error loading articles:", err);
-                message(container, "Articles couldn't be loaded right now. Please try again later.");
+                message(container, "Something went wrong. Try again later.");
             })
             .finally(function () {
                 if (spinner) spinner.style.display = "none";

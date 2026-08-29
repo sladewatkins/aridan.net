@@ -151,11 +151,12 @@ select {
 
 
 
-.dangerZone {
+.style-flat .dangerZone {
     background-color: var(--danger-zone-background-color);
 }
 
-.dangerZone:hover {
+/* Must out-specify `.style-flat .button:hover` in styles.css. */
+.style-flat .dangerZone:hover:where(:not(:disabled)) {
     background-color: var(--danger-zone-hover-background-color);
 }
 
@@ -188,7 +189,6 @@ select {
     max-width: 90%;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
         0 16px 48px rgba(0, 0, 0, 0.4);
     
 
@@ -277,6 +277,9 @@ input[type="radio"] {
 
 
 
-input[type="radio"]:checked+label {
+/* The :hover variant must out-specify `.style-* .button:hover` in styles.css,
+   otherwise hovering the selected option makes it look unselected. */
+input[type="radio"]:checked+label,
+input[type="radio"]:checked+label.button:hover {
     background-color: var(--background-color);
 }

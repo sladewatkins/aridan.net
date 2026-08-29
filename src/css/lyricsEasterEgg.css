@@ -45,7 +45,7 @@
     color: var(--text-color);
     font-size: 1.1em;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color .2s ease, border-color .2s ease, transform .12s ease;
 }
 
 #lyricsCloseBtn>i{
@@ -54,6 +54,17 @@
 
 #lyricsCloseBtn:hover {
     background: var(--button-hover-background-color);
+    border-color: var(--secondary-title-color);
+}
+
+#lyricsCloseBtn:active {
+    transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #lyricsCloseBtn:active {
+        transform: none;
+    }
 }
 
 #lyricsStage {

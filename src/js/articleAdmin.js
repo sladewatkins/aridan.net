@@ -65,7 +65,7 @@
         notice("Deleting " + slug + "…");
         Store.getDir(true)
             .then(function (dir) {
-                if (!dir) { notice("No folder chosen, so nothing was deleted.", "error"); return; }
+                if (!dir) { notice("No folder selected, so nothing was deleted.", "error"); return; }
                 return Store.deleteArticle(dir, slug)
                     .then(function () { return Store.rebuildIndex(dir); })
                     .then(function (slugs) { onGone(slugs); });

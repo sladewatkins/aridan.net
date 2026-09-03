@@ -261,7 +261,7 @@ header>div {
     height: 3.2em;
     -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    /*border: 1px solid rgba(255, 255, 255, 0.15);*/
     /* Top rim highlight only - no bottom inset. Elevation comes from the drop
        shadow, which is heavier here than on anything else on the page. */
     box-shadow:
@@ -645,7 +645,7 @@ hr {
 .style-liquid-glass .mobileMenu {
     -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    /*border: 1px solid rgba(255, 255, 255, 0.15);*/
     border-radius: 28px;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
@@ -747,7 +747,7 @@ ul.specs {
     backdrop-filter: blur(12px);
     transition: opacity 0.2s ease, transform 0.1s ease;
         background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    /*border: 1px solid rgba(255, 255, 255, 0.15);*/
     color: var(--paragraph-color);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
